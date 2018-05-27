@@ -1,3 +1,4 @@
+""" Playing around with the Look and Say sequence: https://en.wikipedia.org/wiki/Look-and-say_sequence """
 import matplotlib.pylab as plt
 
 
@@ -21,13 +22,15 @@ def next_string(current_string):
 
 
 def compute_strings(initial_string='1', n=100, difference_grade=15):
+    ''' as well as calculating the lines up to n this function calculates the difference between the length of two consecutive
+    lines, and the difference between two consecutive differences, and so on until difference_grade '''
     strings = [initial_string]
     lengths = [len(initial_string)]
 
     list_of_differences = [[0] for i in range(difference_grade)]        # difference grade 0 is the lengths
     list_of_differences[0] = [0]
 
-    log_files = []
+    log_files = []          # calculating beyond line 70 takes ages on my computer so I'm saving the lines 
     for i in range(difference_grade):
         log_files.append(open('differences'+str(i)+'.txt', mode='w'))
 
@@ -48,6 +51,7 @@ def compute_strings(initial_string='1', n=100, difference_grade=15):
 
 
 def read_files(n=15):
+    """ reading the saved files """
     list_of_differences = [[0] for i in range(n)]
 
     for i in range(n):
@@ -59,6 +63,7 @@ def read_files(n=15):
 
 
 def plot_files(n=15):
+    """ plot the contents of the saved files """
     lod = read_files(n)
 
     for i in range(len(lod)):
@@ -68,6 +73,9 @@ def plot_files(n=15):
 
 
 def conway_polynomial(n=100):
+    """ Conway's polynomial has as only real positive solution increase in line length as the number of lines tends to infinite
+    plotting this function is very cool within [-1,15;+1.18], beyond that is explodes """
+    
     xs = []
     ys = []
     for i in range(n):
@@ -86,12 +94,5 @@ def conway_polynomial(n=100):
 
 # _, lod = compute_strings(n=70)
 # xs, ys = conway_polynomial(n=118)
-
-list_of_differences = read_files()
-
-for l in list_of_differences:
-    plt.plot(range(len(l)), l)
-
-plt.show()
 
 
