@@ -1,3 +1,4 @@
+""" a 3 layer neural network implemented in numpy with the iris dataset """
 import numpy as np
 import random
 
@@ -90,7 +91,7 @@ class NeuralNetwork:
         self.w2 = init_weight((4, 3))
         self.b2 = init_bias(3)
 
-        self.B2 = init_weight((3, 4))           # replaces self.w2.T if using feedback training
+        self.B2 = init_weight((3, 4))           # replaces self.w2.T if using feedback alignment (performance is slightly worse)
         self.B1 = init_weight((4, 5))           # replaces self.w1.T
 
     def forward(self, x):
