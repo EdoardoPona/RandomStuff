@@ -112,14 +112,17 @@ class NeuralNetwork:
         e = (self.out - t)    # * d_sigmoid(self.a2)    # when using mse
 
         dJdw2 = np.dot(self.h1.T, e)
+        dJdb2 = np.sum(e, axis=0)
 
         delta1 = np.dot(e * d_sigmoid(self.a2), self.w2.T) * d_sigmoid(self.a1)
         dJdw1 = np.dot(self.h0.T, delta1)
+        dJdb1 = np.sum(delta1, axis=0)
 
         delta0 = np.dot(delta1, self.w1.T) * d_sigmoid(self.a0)
         dJdw0 = np.dot(self.x.T, delta0)
+        dJdb0 = np.sum(delta0, axis=0)
 
-        return dJdw0, dJdw1, dJdw2
+        return (dJdw0, dJdb0), (dJdw1, dJdb1), (dJdw2, dJdb2)
 
 
 network = NeuralNetwork()
@@ -138,9 +141,13 @@ def train(iter_num):
 
         gradients = network.backwards(t)
 
-        network.w0 -= lr * gradients[0]
-        network.w1 -= lr * gradients[1]
-        network.w2 -= lr * gradients[2]
+        network.w0 -= lr * gradients[0][0]
+        network.w1 -= lr * gradients[1][0]
+        network.w2 -= lr * gradients[2][0]
+
+        network.b0 -= lr * gradients[0][1]
+        network.b1 -= lr * gradients[1][1]
+        network.b2 -= lr * gradients[2][1]
 
         if i % 1000 == 0:
             print(i, cost, get_accuracy(out, t, batch_size))
