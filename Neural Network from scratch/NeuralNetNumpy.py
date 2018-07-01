@@ -1,6 +1,6 @@
 """ a 3 layer neural network made with numpy only on mnist dataset """
 import numpy as np
-wimport random
+import random
 import matplotlib.pyplot as plt
 
 
@@ -124,39 +124,6 @@ class NeuralNetwork:
         return (dJdw0, dJdb0), (dJdw1, dJdb1), (dJdw2, dJdb2)
 
 
-class ShallowNeuralNetwork:
-
-    def __init__(self):
-        self.w0 = init_weight((4, 5))
-        self.b0 = init_bias(5)
-
-        self.w1 = init_weight((5, 3))
-        self.b1 = init_bias(3)
-
-        self.B1 = init_weight((3, 5))
-
-    def forward(self, x):
-        self.x = x
-
-        self.a0 = np.dot(x, self.w0)
-        self.h0 = sigmoid(self.a0)
-
-        self.a1 = np.dot(self.h0, self.w1)
-        self.out = self.a1
-
-        return self.out
-
-    def backwards(self, t):
-        e = (self.out - t) * d_sigmoid(self.a1)    # when using mse
-
-        dJdw1 = np.dot(self.h0.T, e)
-
-        delta0 = np.dot(e * d_sigmoid(self.a1), self.B1) * d_sigmoid(self.a0)
-        dJdw0 = np.dot(self.x.T, delta0)
-
-        return dJdw0, dJdw1
-
-
 network = NeuralNetwork()
 
 costs = []
@@ -184,7 +151,7 @@ def train_SGD(iter_num):
 
         if i % 10 == 0:
             print(i, cost, get_accuracy(out, t, batch_size))
-            costs.append(cost)
+        costs.append(cost)
 
 
 def train_momentum(iter_num, momentum=0.9):
@@ -209,7 +176,7 @@ def train_momentum(iter_num, momentum=0.9):
 
         if i % 10 == 0:
             print(i, cost, get_accuracy(out, t, batch_size))
-            costs.append(cost)
+        costs.append(cost)
 
 
 def train_nesterov(iter_num, momentum=0.9):
@@ -243,7 +210,7 @@ def train_nesterov(iter_num, momentum=0.9):
 
         if i % 10 == 0:
             print(i, cost, get_accuracy(out, t, batch_size))
-            costs.append(cost)
+        costs.append(cost)
 
 train_nesterov(3e3)
 plt.plot(list(range(len(costs))), costs)
