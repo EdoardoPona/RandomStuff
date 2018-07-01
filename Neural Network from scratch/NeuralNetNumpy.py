@@ -1,10 +1,11 @@
-""" a 3 layer neural network implemented in numpy with the iris dataset """
+""" a 3 layer neural network made with numpy only on mnist dataset """
 import numpy as np
-import random
+wimport random
+import matplotlib.pyplot as plt
 
 
 def one_hot(i):
-    out = np.zeros((3))
+    out = np.zeros((10))
     out[i] = 1
     return out
 
@@ -15,18 +16,15 @@ def shuffle_list(*ls):
     return zip(*l)
 
 
-file = open('IrisDataset.txt', 'r')
-data = []
+data = open('train.csv', 'r').readlines()
 targets = []
+del data[0]
 
-classes = ['Iris-setosa', 'Iris-versicolor', 'Iris-virginica']
-
-for line in file.readlines():
-    line = line.replace('\n', '').split(',')
-    data.append(np.array([float(item) for item in line[:-1]]))
-    targets.append((one_hot(classes.index(line[-1]))))
-
-data, targets = shuffle_list(data, targets)
+print('loading dataset')
+for i, line in enumerate(data):
+    data[i] = np.array([int(i) for i in line.split(',')][1:])
+    targets.append(one_hot(int(line[0])))
+print('done')
 
 
 def get_batch(b_size):
@@ -82,17 +80,18 @@ def mse(y, t):
 class NeuralNetwork:
 
     def __init__(self):
-        self.w0 = init_weight((4, 5))
-        self.b0 = init_bias(5)
+        self.w0 = init_weight((784, 512))
+        self.b0 = init_bias(512)
 
-        self.w1 = init_weight((5, 4))
-        self.b1 = init_bias(4)
+        self.w1 = init_weight((512, 128))
+        self.b1 = init_bias(128)
 
-        self.w2 = init_weight((4, 3))
-        self.b2 = init_bias(3)
+        self.w2 = init_weight((128, 10))
+        self.b2 = init_bias(10)
 
-        self.B2 = init_weight((3, 4))           # replaces self.w2.T if using feedback alignment (performance is slightly worse)
-        self.B1 = init_weight((4, 5))           # replaces self.w1.T
+        self.B2 = init_weight((10, 128))           # replaces self.w2.T if using feedback training
+        self.B1 = init_weight((128, 512))           # replaces self.w1.T
+
 
     def forward(self, x):
         self.x = x
@@ -125,14 +124,48 @@ class NeuralNetwork:
         return (dJdw0, dJdb0), (dJdw1, dJdb1), (dJdw2, dJdb2)
 
 
+class ShallowNeuralNetwork:
+
+    def __init__(self):
+        self.w0 = init_weight((4, 5))
+        self.b0 = init_bias(5)
+
+        self.w1 = init_weight((5, 3))
+        self.b1 = init_bias(3)
+
+        self.B1 = init_weight((3, 5))
+
+    def forward(self, x):
+        self.x = x
+
+        self.a0 = np.dot(x, self.w0)
+        self.h0 = sigmoid(self.a0)
+
+        self.a1 = np.dot(self.h0, self.w1)
+        self.out = self.a1
+
+        return self.out
+
+    def backwards(self, t):
+        e = (self.out - t) * d_sigmoid(self.a1)    # when using mse
+
+        dJdw1 = np.dot(self.h0.T, e)
+
+        delta0 = np.dot(e * d_sigmoid(self.a1), self.B1) * d_sigmoid(self.a0)
+        dJdw0 = np.dot(self.x.T, delta0)
+
+        return dJdw0, dJdw1
+
+
 network = NeuralNetwork()
 
+costs = []
 
-def train(iter_num):
-    batch_size = 50
-    lr = 1e-3
+batch_size = 50
+lr = 1e-3
 
-    print('training everything')
+
+def train_SGD(iter_num):
     for i in range(int(iter_num)):
         b, t = get_batch(batch_size)
 
@@ -149,6 +182,69 @@ def train(iter_num):
         network.b1 -= lr * gradients[1][1]
         network.b2 -= lr * gradients[2][1]
 
-        if i % 1000 == 0:
+        if i % 10 == 0:
             print(i, cost, get_accuracy(out, t, batch_size))
+            costs.append(cost)
 
+
+def train_momentum(iter_num, momentum=0.9):
+    updates = [(0, 0) for i in range(3)]     # [w_update, b_update] for every layer
+    for i in range(int(iter_num)):
+        b, t = get_batch(batch_size)
+
+        out = network.forward(b)
+        cost = cross_entropy(out, t)
+
+        gradients = network.backwards(t)
+
+        updates = [(lr*gradients[i][0] + momentum*updates[i][0], lr*gradients[i][1] + momentum*updates[i][1]) for i in range(3)]
+
+        network.w0 -= updates[0][0]
+        network.w1 -= updates[1][0]
+        network.w2 -= updates[2][0]
+
+        network.b0 -= updates[0][1]
+        network.b1 -= updates[1][1]
+        network.b2 -= updates[2][1]
+
+        if i % 10 == 0:
+            print(i, cost, get_accuracy(out, t, batch_size))
+            costs.append(cost)
+
+
+def train_nesterov(iter_num, momentum=0.9):
+    updates = [(0, 0) for i in range(3)]     # [w_update, b_update] for every layer
+    for i in range(int(iter_num)):
+        b, t = get_batch(batch_size)
+
+        out = network.forward(b)
+        cost = cross_entropy(out, t)
+
+        # approximating future parameters
+        network.w0 -= momentum * updates[0][0]
+        network.w1 -= momentum * updates[1][0]
+        network.w2 -= momentum * updates[2][0]
+
+        network.b0 -= momentum * updates[0][1]
+        network.b1 -= momentum * updates[1][1]
+        network.b2 -= momentum * updates[2][1]
+
+        gradients = network.backwards(t)
+
+        network.w0 -= lr * gradients[0][0]
+        network.w1 -= lr * gradients[1][0]
+        network.w2 -= lr * gradients[2][0]
+
+        network.b0 -= lr * gradients[0][1]
+        network.b1 -= lr * gradients[1][1]
+        network.b2 -= lr * gradients[2][1]
+
+        updates = [(lr*gradients[i][0] + momentum*updates[i][0], lr*gradients[i][1] + momentum*updates[i][1]) for i in range(3)]
+
+        if i % 10 == 0:
+            print(i, cost, get_accuracy(out, t, batch_size))
+            costs.append(cost)
+
+train_nesterov(3e3)
+plt.plot(list(range(len(costs))), costs)
+plt.show()
